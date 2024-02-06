@@ -6,9 +6,12 @@ import { useNavigation } from '@react-navigation/native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../config/firebaseConfig';
 import { getDoc, doc } from 'firebase/firestore';
+import { useDispatch } from 'react-redux';
+import { SET_USER } from '../context/actions/userActions';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
 
   const screenWidth = Math.round(Dimensions.get('window').width);
   const [email, setEmail] = useState('');
@@ -22,7 +25,7 @@ const LoginScreen = () => {
             getDoc(doc(db, 'users', userCredential.user.uid)).then(docSnap => {
               if (docSnap.exists()) {
                 console.log('Document data:', docSnap.data());
-                navigation.navigate('HomeScreen');
+                dispatch(SET_USER(docSnap.data()));
               } else {
                 console.log('No such document!');
               }
