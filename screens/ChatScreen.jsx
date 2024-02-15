@@ -34,7 +34,6 @@ const ChatScreen = ({ route }) => {
   const [messages, setMessages] = useState(null);
   const user = useSelector(state => state.user.user);
 
-
   const textInputRef = useRef(null);
 
   const handleKeyboardOpen = () => {
@@ -79,24 +78,21 @@ const ChatScreen = ({ route }) => {
     return unsubscribe;
   }, []);
 
-  // update status to online
+  // mgs seen and unseen
   useEffect(() => {
-    const userRef = doc(db, 'users', user.providerDate.email);
-    const unsub = onSnapshot(userRef, userSnap => {
-      if (userSnap.exists()) {
-        const userDoc = userSnap.data();
-        if (userDoc?.status !== 'online') {
-          userRef.update({
-            status: 'online',
-          });
-        }
-      }
-    });
+    const seenMsg = messages?.filter(
+      msg => msg.user.providerDate.email !== user.providerDate.email
+    );
 
-
-
-    return unsub;
-  }, []);
+    if (seenMsg?.length > 0) {
+      // update the messages to seen
+      seenMsg.forEach(async msg => {
+        await addDoc(collection(doc(db, 'chats', room?._id, 'messages', msg._id), 'seen'), {
+          seen: true,
+        });
+      });
+    }
+  }, [messages]);
 
   return (
     <View className="flex-1">
