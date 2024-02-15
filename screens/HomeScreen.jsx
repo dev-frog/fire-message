@@ -21,25 +21,48 @@ const HomeScreen = () => {
     const chatQuery = query(collection(db, 'chats'), orderBy('_id', 'desc'));
 
     const unsubscribe = onSnapshot(chatQuery, snapshot => {
-      const _chats = snapshot.docs.map(doc => doc.data());
-      setChats(_chats);
-      setIsLoading(false);
+      const chats = snapshot.docs.map(doc => {
+        return {
+          _id: doc.id,
+          ...doc.data(),
+        };
+      });
+
+      // Create an array to store promises for each chat's last message query
+      const lastMessagePromises = chats.map(chat => {
+        const lastQuery = query(
+          collection(db, 'chats', chat._id, 'messages'),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
+
+        return new Promise(resolve => {
+          onSnapshot(lastQuery, snapshot => {
+            const messages = snapshot.docs.map(doc => {
+              return {
+                _id: doc.id,
+                ...doc.data(),
+              };
+            });
+
+            chat.messages = messages;
+            resolve(); // Resolve the promise once the last message is fetched
+          });
+        });
+      });
+
+      // Wait for all promises to resolve before updating the chats state
+      Promise.all(lastMessagePromises).then(() => {
+        setChats(chats);
+
+        setIsLoading(false);
+      });
     });
 
-    // also want last message of each chat
-    const lastMessageQuery = query(collection(db, 'chats'), orderBy('timestamp', 'desc'), limit(1));
-
-    const unsubscribe2 = onSnapshot(lastMessageQuery, snapshot => {
-      const _chats = snapshot.docs.map(doc => doc.data());
-      setChats(_chats);
-      setIsLoading(false);
-    });
-
-    return () => {
-      unsubscribe();
-      unsubscribe2();
-    };
+    return () => unsubscribe();
   }, []);
+
+  // ea
 
   // logout function using redux
   const handleLogout = async () => {
@@ -107,6 +130,7 @@ const HomeScreen = () => {
 
 const MessageCard = ({ room }) => {
   const navigation = useNavigation();
+
   return (
     <TouchableOpacity
       onPress={() => navigation.navigate('ChatScreen', { room })}
@@ -119,10 +143,8 @@ const MessageCard = ({ room }) => {
       <View className="flex-1 flex items-start justify-center ml-4">
         <Text className="text-[#333] text-base font-semibold capitalize">{room.chatName}</Text>
 
-        <Text className="text-primaryText text-sm">
-          {/* {room.messages[room.messages.length - 1].user.email} :{' '}
-          {room.messages[room.messages.length - 1].message} */}
-        </Text>
+        {/* Render the message text */}
+        <Text className="text-primaryText text-sm">{room.messages[0].text}</Text>
       </View>
 
       {/* time text */}
