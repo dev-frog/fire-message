@@ -148,7 +148,20 @@ const MessageCard = ({ room }) => {
       </View>
 
       {/* time text */}
-      <Text className="text-primary px-4 text-base font-semibold">27 min</Text>
+      <Text className="text-primary px-4 text-base font-semibold">
+        {room.messages[0]?.createdAt && (
+          <Text className="text-[12px] text-black font-semibold">
+            {new Date(parseInt(room.messages[0]?.createdAt?.seconds) * 1000).toLocaleTimeString(
+              'en-US',
+              {
+                hour: 'numeric',
+                minute: 'numeric',
+                hour12: true,
+              }
+            )}
+          </Text>
+        )}
+      </Text>
     </TouchableOpacity>
   );
 };
