@@ -13,7 +13,7 @@ const AddToChatScreen = () => {
   const user = useSelector(state => state.user.user);
 
   const createNewChat = async () => {
-    const id = `${Date.now()}-${user._id}-${addChat}`;
+    const id = `${user._id}-${Date.now()}`;
     const _chat = {
       _id: id,
       user,

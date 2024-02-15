@@ -9,7 +9,7 @@ import {
   TextInput,
   Image,
 } from 'react-native';
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { MaterialIcons, FontAwesome5, FontAwesome, Entypo } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Avatar } from '../assets';
@@ -33,6 +33,7 @@ const ChatScreen = ({ route }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState(null);
   const user = useSelector(state => state.user.user);
+
 
   const textInputRef = useRef(null);
 
@@ -78,7 +79,24 @@ const ChatScreen = ({ route }) => {
     return unsubscribe;
   }, []);
 
-  console.log('messages-->', messages);
+  // update status to online
+  useEffect(() => {
+    const userRef = doc(db, 'users', user.providerDate.email);
+    const unsub = onSnapshot(userRef, userSnap => {
+      if (userSnap.exists()) {
+        const userDoc = userSnap.data();
+        if (userDoc?.status !== 'online') {
+          userRef.update({
+            status: 'online',
+          });
+        }
+      }
+    });
+
+
+
+    return unsub;
+  }, []);
 
   return (
     <View className="flex-1">
@@ -159,11 +177,27 @@ const ChatScreen = ({ route }) => {
                           className="flex items-center justify-start space-x-2">
                           <View className="flex-row items-center justify-center space-x-2">
                             {/* image */}
-                            <Image
-                              className="w-12 h-12 rounded-full"
-                              resizeMode="cover"
-                              source={{ uri: msg?.user?.profilePic }}
-                            />
+                            <View>
+                              <Image
+                                className="w-12 h-12 rounded-full"
+                                resizeMode="cover"
+                                source={Avatar}
+                              />
+                              {/* online icon */}
+                              <View
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 0,
+                                  right: 0,
+                                  width: 12,
+                                  height: 12,
+                                  backgroundColor: '#43C651',
+                                  borderRadius: 5,
+                                  borderWidth: 2,
+                                  borderColor: '#fff',
+                                }}
+                              />
+                            </View>
                             {/* text */}
                             <View className="m-1">
                               <View className="px-4 py-2 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl bg-gray-200 w-auto  relative">

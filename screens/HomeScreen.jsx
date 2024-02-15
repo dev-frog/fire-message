@@ -1,16 +1,18 @@
 import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import React, { useLayoutEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo, Avatar, RoomIcon } from '../assets';
 import { useNavigation } from '@react-navigation/native';
-import { db } from '../config/firebaseConfig';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { auth, db } from '../config/firebaseConfig';
+import { collection, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
+import { SET_USER_NULL } from '../context/actions/userActions';
 
 const HomeScreen = () => {
   const user = useSelector(state => state.user.user);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const dispatch = useDispatch();
 
   const [isLoading, setIsLoading] = React.useState(true);
   const [chats, setChats] = React.useState([]);
@@ -24,17 +26,42 @@ const HomeScreen = () => {
       setIsLoading(false);
     });
 
-    return unsubscribe;
+    // also want last message of each chat
+    const lastMessageQuery = query(collection(db, 'chats'), orderBy('timestamp', 'desc'), limit(1));
+
+    const unsubscribe2 = onSnapshot(lastMessageQuery, snapshot => {
+      const _chats = snapshot.docs.map(doc => doc.data());
+      setChats(_chats);
+      setIsLoading(false);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribe2();
+    };
   }, []);
 
-  // console.log('====><<<', user);
+  // logout function using redux
+  const handleLogout = async () => {
+    await auth.signOut().then(() => {
+      dispatch(SET_USER_NULL());
+      navigation.replace('LoginScreen');
+    });
+  };
   return (
     <View style={{ paddingTop: Math.max(insets.top, 16) }}>
       <View className="w-full flex-row items-center justify-between px-4 py-2">
-        <Image source={Logo} className="w-12 h-12" resizeMode="cover" />
+        {/* <Image source={Logo} className="w-12 h-12" resizeMode="cover" /> */}
 
         <TouchableOpacity className="w-12 h-12 rounded-full border border-primary flex items-center justify-center">
           <Image source={Avatar} className="w-full h-full rounded-full" resizeMode="cover" />
+        </TouchableOpacity>
+
+        {/* logout button */}
+        <TouchableOpacity
+          onPress={() => handleLogout()}
+          className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
+          <Text className="text-white text-xs font-bold">Logout</Text>
         </TouchableOpacity>
       </View>
 
